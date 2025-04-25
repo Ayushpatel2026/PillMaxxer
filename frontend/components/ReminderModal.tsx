@@ -125,7 +125,7 @@ const ReminderModal = ({ isVisible, setIsVisible, reminder }: ReminderModalProps
         <Animated.View style={[styles.modalContainer, { transform: [{ translateY }] }]}>
           <Text style={styles.modalTitle}>Medication Reminder</Text>
           <Text style={styles.modalText}>Date: {reminder.date}</Text>
-          <Text style={styles.modalText}>Time: {reminder.scheduledDose.timeOfDay}</Text>
+          <Text style={styles.modalText}>Time: {reminder.scheduledDose.timeOfDay.substring(0, 5)}</Text>
           <Text style={styles.modalText}>Medications: {reminder.scheduledDose.medications.map(med => med.medicationName).join(', ')}</Text>
 
           <View style={styles.modalButtonsContainer}>

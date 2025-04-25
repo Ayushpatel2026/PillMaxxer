@@ -53,6 +53,7 @@ export const registerPatient = async (patientData: {
 export const getPatientData = async (userId: string) => {
   console.log("Fetching patient data for userId:", userId)
   try {
+    console.log("Fetching patient data from URL:", `${API_BASE_URL}/patients/${userId}`)
     const response = await api.get(`/patients/${userId}`)
     return response.data
   } catch (error) {

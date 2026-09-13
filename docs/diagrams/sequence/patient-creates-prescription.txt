@@ -1,0 +1,33 @@
+@startuml seq_add_prescription
+actor Patient
+participant Frontend
+participant "API Gateway" as Gateway
+participant "Prescriptions" as Prescriptions
+participant "RxNav (external)" as RxNav
+participant "Doses & Scheduling" as Schedule
+participant "Notifications" as Notifications
+ 
+Patient -> Frontend : Fill out prescription form
+Frontend -> Gateway : POST /prescriptions (JWT)
+Gateway -> Prescriptions : createPrescription(dto)
+Prescriptions -> Prescriptions : save prescription
+Prescriptions -> RxNav : check interactions\n(against patient's active meds)
+RxNav --> Prescriptions : interaction result
+ 
+alt critical interaction found
+  Prescriptions -> Notifications : send critical interaction alert
+end
+ 
+Prescriptions -> Schedule : generateSchedule(prescriptionId, frequency, duration)
+Schedule -> Schedule : create dose instances
+Schedule --> Prescriptions : schedule created
+Prescriptions --> Gateway
+Gateway --> Frontend
+Frontend --> Patient : confirmation + schedule shown
+ 
+... time passes, a dose becomes due ...
+ 
+Schedule -> Notifications : dose due (doseInstanceId, patientId)
+Notifications --> Patient : push / email\n"Time to take your medication"
+ 
+@enduml

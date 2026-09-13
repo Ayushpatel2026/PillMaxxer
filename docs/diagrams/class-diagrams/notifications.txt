@@ -1,0 +1,63 @@
+@startuml notifications_module
+package "Notifications" {
+
+  enum NotificationType {
+    CONNECTION_REQUEST
+    CONNECTION_APPROVED
+    CONNECTION_REVOKED
+    CRITICAL_INTERACTION
+    DOSE_DUE
+    DOSE_MISSED
+    ADHERENCE_REPORT_UPDATE
+  }
+
+  enum NotificationChannel {
+    EMAIL
+    IN_APP
+  }
+
+  class Notification {
+    -id: UUID
+    -recipientId: UUID
+    -type: NotificationType
+    -payload: String
+    -channel: NotificationChannel
+    -read: boolean
+    -createdAt: Instant
+  }
+
+  interface NotificationService {
+    +notify(recipientId, type: NotificationType, payload): void
+    +getNotificationsForUser(userId): List<NotificationDTO>
+    +markRead(notificationId, userId): void
+  }
+
+  class NotificationServiceImpl implements NotificationService
+  class NotificationController {
+    +getNotifications(userId): List<NotificationDTO>
+    +markRead(id): void
+  }
+
+  class NotificationRepository
+
+  interface EmailSender {
+    +send(to: String, subject: String, body: String): void
+  }
+  class SmtpEmailSender implements EmailSender
+
+  class NotificationDTO {
+    +id: UUID
+    +type: NotificationType
+    +payload: String
+    +read: boolean
+  }
+
+  NotificationController --> NotificationService
+  NotificationServiceImpl --> NotificationRepository
+  NotificationServiceImpl --> EmailSender
+  NotificationServiceImpl ..> NotificationDTO
+  NotificationRepository --> Notification
+  Notification --> NotificationType
+  Notification --> NotificationChannel
+}
+@enduml

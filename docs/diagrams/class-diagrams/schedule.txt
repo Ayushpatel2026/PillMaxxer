@@ -1,0 +1,57 @@
+@startuml doses_scheduling_module
+package "Doses & Scheduling" {
+
+  enum DoseStatus {
+    PENDING
+    TAKEN
+    MISSED
+  }
+
+  class DoseInstance {
+    -id: UUID
+    -prescriptionId: UUID
+    -patientId: UUID
+    -scheduledTime: Instant
+    -status: DoseStatus
+    -loggedAt: Instant
+  }
+
+  interface ScheduleService {
+    +generateSchedule(prescriptionId, frequency, startDate, endDate): void
+    +logDoseTaken(doseInstanceId, patientId): void
+    +getDoseHistory(patientId, window): List<DoseSummaryDTO>
+  }
+
+  class ScheduleServiceImpl implements ScheduleService
+  class ScheduleController {
+    +logDose(doseInstanceId): void
+    +getHistory(patientId, window): List<DoseSummaryDTO>
+  }
+
+  class DoseInstanceRepository
+
+  class MissedDoseJob {
+    +run(): void
+    -transitionOverdueDoses(): int
+  }
+
+  class DoseSummaryDTO {
+    +doseInstanceId: UUID
+    +scheduledTime: Instant
+    +status: DoseStatus
+  }
+
+  ScheduleController --> ScheduleService
+  ScheduleServiceImpl --> DoseInstanceRepository
+  ScheduleServiceImpl ..> DoseSummaryDTO
+  MissedDoseJob --> ScheduleService : uses internally
+  DoseInstanceRepository --> DoseInstance
+  DoseInstance --> DoseStatus
+
+  ScheduleServiceImpl ..> "NotificationService (Notifications)" : dose due / dose missed events
+}
+
+note bottom of MissedDoseJob
+  Background process
+end note
+@enduml

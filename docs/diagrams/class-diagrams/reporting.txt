@@ -1,0 +1,28 @@
+@startuml reporting_module
+package "Reporting" {
+
+  interface ReportingService {
+    +getReport(requesterId, patientId, window): AdherenceReportDTO
+  }
+
+  class ReportingServiceImpl implements ReportingService
+  class ReportingController {
+    +getReport(patientId, window): AdherenceReportDTO
+  }
+
+  class AdherenceReportDTO {
+    +patientId: UUID
+    +window: String
+    +takenCount: int
+    +missedCount: int
+    +trend: String
+    +scopedFields: boolean
+  }
+
+  ReportingController --> ReportingService
+  ReportingServiceImpl ..> AdherenceReportDTO
+
+  ReportingServiceImpl ..> "ConnectionService (Connections)" : checkAccess() determines scoped fields
+  ReportingServiceImpl ..> "ScheduleService (Doses & Scheduling)" : getDoseHistory()
+}
+@enduml

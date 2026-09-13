@@ -1,0 +1,78 @@
+@startuml connections_module
+package "Connections" {
+
+  enum ConnectionStatus {
+    PENDING
+    APPROVED
+    DENIED
+    REVOKED
+  }
+
+  enum PermissionLevel {
+    PROVIDER_FULL
+    CAREGIVER_STATS_ONLY
+    CAREGIVER_FULL
+  }
+
+  class ConnectionRequest {
+    -id: UUID
+    -patientId: UUID
+    -counterpartyId: UUID
+    -counterpartyRole: Role
+    -status: ConnectionStatus
+    -permissionLevel: PermissionLevel
+    -createdAt: Instant
+    -resolvedAt: Instant
+  }
+
+  interface ConnectionService {
+    +sendRequest(patientId, counterpartyId, level): ConnectionSummaryDTO
+    +approve(connectionId, patientId): void
+    +deny(connectionId, patientId): void
+    +revoke(connectionId, patientId): void
+    +checkAccess(requesterId, patientId): AccessResultDTO
+    +getConnectionsForPatient(patientId): List<ConnectionSummaryDTO>
+    +getNotifiableCaregivers(patientId, trigger): List<UUID>
+  }
+
+  class ConnectionServiceImpl implements ConnectionService
+  class ConnectionController {
+    +invite(dto): ConnectionSummaryDTO
+    +approve(id): void
+    +deny(id): void
+    +revoke(id): void
+    +listConnections(patientId): List<ConnectionSummaryDTO>
+  }
+
+  class ConnectionRepository
+
+  class AccessResultDTO {
+    +granted: boolean
+    +role: Role
+    +permissionLevel: PermissionLevel
+  }
+  class ConnectionSummaryDTO {
+    +connectionId: UUID
+    +counterpartyId: UUID
+    +status: ConnectionStatus
+    +permissionLevel: PermissionLevel
+  }
+
+  ConnectionController --> ConnectionService
+  ConnectionServiceImpl --> ConnectionRepository
+  ConnectionServiceImpl ..> AccessResultDTO
+  ConnectionServiceImpl ..> ConnectionSummaryDTO
+  ConnectionRepository --> ConnectionRequest
+  ConnectionRequest --> ConnectionStatus
+  ConnectionRequest --> PermissionLevel
+
+  ConnectionServiceImpl ..> "IdentityService (Identity & Access)" : validate counterparty exists
+  ConnectionServiceImpl ..> "NotificationService (Notifications)" : notify on request/approve/revoke
+}
+
+note bottom of ConnectionService
+  checkAccess() is the single choke point
+  every other module calls before touching
+  patient data.
+end note
+@enduml

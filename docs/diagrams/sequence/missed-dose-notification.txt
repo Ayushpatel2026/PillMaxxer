@@ -1,0 +1,38 @@
+@startuml seq_missed_dose
+participant "Doses & Scheduling" as Schedule
+participant "Notifications" as Notifications
+participant "Connections" as Connections
+participant "Reporting" as Reporting
+participant "API Gateway" as Gateway
+actor Caregiver
+actor Provider
+ 
+Schedule -> Schedule : query PENDING doses past grace period
+Schedule -> Schedule : update status to MISSED
+Schedule -> Notifications : dose missed (doseInstanceId, patientId)
+Notifications -> Connections : getCaregivers(patientId, notifyOnMissedDose=true)
+Connections --> Notifications : caregiver list + access levels
+Notifications --> Caregiver : email / in-app "missed dose" alert
+ 
+... end of the week ...
+
+Reporting -> Schedule : getDoseHistory(patientId, window=7d)
+Schedule --> Reporting : dose history (incl. missed dose)
+Reporting -> Reporting : generateWeeklyReports()
+Reporting -> Reporting : save generated report
+ 
+Provider -> Gateway : GET /patients/{id}/report (JWT)
+Gateway -> Reporting : getReport(providerId, patientId)
+Reporting -> Connections : checkAccess(providerId, patientId)
+Connections --> Reporting : access confirmed (PROVIDER, full)
+Reporting --> Gateway : adherence report incl. missed dose
+Gateway --> Provider : report
+ 
+Caregiver -> Gateway : GET /patients/{id}/report (JWT)
+Gateway -> Reporting : getReport(caregiverId, patientId)
+Reporting -> Connections : checkAccess(caregiverId, patientId)
+Connections --> Reporting : access confirmed (scoped to granted level)
+Reporting --> Gateway : adherence report (scoped fields only)
+Gateway --> Caregiver : report
+ 
+@enduml

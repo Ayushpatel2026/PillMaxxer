@@ -1,0 +1,53 @@
+@startuml seq_add_caregiver
+actor Patient
+actor Caregiver
+participant Frontend
+participant "API Gateway" as Gateway
+participant "Connections" as Connections
+participant "Identity & Access" as Identity
+participant "Notifications" as Notifications
+participant "SMTP Provider" as SMTP
+participant "Patient Data Modules\n(Reports, Prescriptions, Adherence)" as Modules
+ 
+Patient -> Frontend : Invite caregiver (email, full access)
+Frontend -> Gateway : POST /connections/invite (JWT)
+Gateway -> Connections : createInvite(patientId, caregiverEmail, FULL_ACCESS)
+Connections -> Connections : save pending connection request
+Connections -> SMTP : send caregiver invite email
+SMTP --> Caregiver : invite email with signup link
+ 
+Caregiver -> Frontend : click link, open signup page
+Frontend -> Gateway : POST /auth/register
+Gateway -> Identity : registerUser(caregiverDetails)
+Identity -> Identity : save user (unverified)
+Identity -> SMTP : send verification email
+SMTP --> Caregiver : verification email
+Caregiver -> Frontend : click verification link
+Frontend -> Gateway : GET /auth/verify?token=...
+Gateway -> Identity : verifyEmail(token)
+Identity -> Identity : mark account verified
+ 
+Caregiver -> Frontend : log in
+Frontend -> Gateway : POST /auth/login
+Gateway -> Identity : authenticate(credentials)
+Identity --> Gateway : access + refresh token
+Gateway --> Frontend : tokens
+Frontend --> Caregiver : logged in, sees pending connection request
+ 
+Caregiver -> Frontend : approve connection request
+Frontend -> Gateway : POST /connections/{id}/approve
+Gateway -> Connections : approve(connectionId)
+Connections -> Connections : mark connection APPROVED, FULL_ACCESS
+Connections -> Notifications : notify patient (caregiver accepted)
+Notifications --> Patient : in-app / email notification
+ 
+Caregiver -> Frontend : view patient dashboard
+Frontend -> Gateway : GET /patients/{id}/... (JWT)
+Gateway -> Modules : fetch requested data
+Modules -> Connections : checkAccess(caregiverId, patientId)
+Connections --> Modules : FULL_ACCESS confirmed
+Modules --> Gateway : adherence stats, prescriptions,\ndosage schedule, interaction alerts
+Gateway --> Frontend : data
+Frontend --> Caregiver : full patient view
+ 
+@enduml

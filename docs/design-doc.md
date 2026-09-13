@@ -60,7 +60,7 @@ PillMaxxer is built as a **modular monolith**:
   - **Adherence & Gamification** — progress tracking, streaks, points, leaderboard
   - **Reporting** — adherence reports and trend analysis for providers/caregivers, scoped by their permission level
   - **Notifications** — in-app and email notifications across all the triggers in the system
-- Each module owns its own entities and repositories. A module never reaches into another module's repository or entities directly — if Prescriptions needs to know something about a user, it calls Identity & Access's service interface (e.g. `IdentityService.getUserById(...)`), not `UserRepository` directly.
+- Each module owns its own entities and repositories. A module never reaches into another module's repository or entities directly — if Prescriptions needs to know something about a user, it calls Identity & Access's service interface (e.g. `IdentityService.getUserById(...)`), not `UserRepository` directly. The API Gateway is kept as a separate service, even though it currently fronts a single monolith, so that a future decomposition into microservices requires no change to the client contract or auth flow.
 
 ## 3.3 Cross-module communication: service layer only, never controllers
  
@@ -71,3 +71,53 @@ Each module follows the standard layering: Controller (HTTP concerns — request
 Concretely, each module exposes its service as an interface (e.g. `IdentityService`), and other modules depend on that interface via dependency injection rather than the concrete implementation, and it keeps each module trivially mockable in tests for the modules that depend on it.
 
 **Entities don't cross the boundary either.** A service method should never return its own `@Entity` type to a caller in another module, this would leak database specifics. Services return small, purpose-built DTOs/records representing exactly what the caller needs.
+
+## 4. System Architecture Diagrams
+
+### 4.1 High-Level System Diagram
+
+![High Level System Overview](diagrams/high-level-system-overview.png)
+
+These diagrams capture the initial design and will be updated iteratively as implementation details are finalized.
+
+### 4.2 Sequence Diagrams
+
+#### 4.2.1 Patient adds a prescription manually, schedule is generated, doses trigger notifications
+
+![Sequence diagram of manual prescription creation](diagrams/sequence/patient-creates-prescription.png)
+
+#### 4.2.2 Patient adds a caregiver with full access; caregiver signs up and gains access
+
+![Sequence diagram of patient connecting with caregiver](diagrams/sequence/patient-adds-caregiver.png)
+
+#### 4.2.3 Patient misses a dose; caregiver is notified; dose appears in the weekly report
+
+![Sequence diagram of patient missing dose + notifications and reporting](diagrams/sequence/missed-dose-notification.png)
+
+#### 4.2.4 Authenticaion Flows
+
+![Sequence diagram of authentication flows](diagrams/sequence/auth-flows.png)
+
+### 4.3 Notifications Design 
+
+![Notifications Design Diagram](diagrams/notifications-design-diagram.png)
+
+### 4.4 Class Diagrams
+
+![Identity Class Diagram](diagrams/class-diagrams/identity.png)
+![Prescriptions Class Diagram](diagrams/class-diagrams/prescriptions.png)
+![Schedule Class Diagram](diagrams/class-diagrams/schedule.png)
+![Connections Class Diagram](diagrams/class-diagrams/connections.png)
+![Adherence Class Diagram](diagrams/class-diagrams/adherence.png)
+![Reporting Class Diagram](diagrams/class-diagrams/reporting.png)
+![Notifications Class Diagram](diagrams/class-diagrams/notifications.png)
+
+
+
+## Open Sections (to be added)
+ 
+- Data model
+- Deployment diagram
+- RBAC / permission model detail
+- API contract overview (Gateway → module endpoints)
+- Logging & auditing design

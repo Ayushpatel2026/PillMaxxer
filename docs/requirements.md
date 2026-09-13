@@ -36,8 +36,8 @@ A single user account has exactly one role, chosen at registration.
 - FR-7: A provider can search for and send a connection request to a patient (by name/email).
 - FR-8: A patient must explicitly approve any provider connection request before that provider can see any of the patient's data or prescribe to them.
 - FR-9: Provider access is **all-or-nothing**: once approved, the provider can see the patient's full prescription list and adherence data.
-- FR-10: A caregiver can search for and send a connection request to a patient.
-- FR-11: A patient must explicitly approve any caregiver connection request.
+- FR-10: A patient can search for and send a connection request to a caregiver (by email).
+- FR-11: A caregiver cannot search for patients in the app - they are only connected to patients that explictly send them an email.
 - FR-12: Caregiver access is **granular**: the patient chooses one of two visibility levels when approving: *adherence stats only* (counts of taken/missed doses + medication name + no notifications of drug interactions), or *adherence stats + full prescription list + dosage schedule + notifications of drug interactions*.
 - FR-13: Connection requests generate both an in-app notification and an email notification to the recipient (patient). Approval/denial action must happen in app after login.
 - FR-14: A patient can revoke a provider's or caregiver's access at any time; revocation takes effect immediately (subsequent requests from that user are rejected at the authorization layer, not just hidden in the UI).
@@ -87,7 +87,7 @@ A single user account has exactly one role, chosen at registration.
 - NFR-3: Authorization is enforced server-side at the API layer for every request.
 - NFR-4: Authorization for provider/caregiver access is *relationship-scoped*: a provider or caregiver can only access data for patients who have explicitly granted them access, and only at the granted permission level.
 - NFR-5: All inter-service and client-service traffic assumed to run over HTTPS in any deployed environment.
-- NFR-6: Sensitive actions (granting/revoking access, viewing patient data by a non-owner) are logged for audit purposes.
+- NFR-6: Sensitive actions (granting/revoking access, viewing patient data) are logged for audit purposes.
 
 ### 4.2 Reliability & Data Integrity
 - NFR-7: The missed-dose detection job must be idempotent — re-running it must not double-process or corrupt already-resolved dose instances.
@@ -98,11 +98,11 @@ A single user account has exactly one role, chosen at registration.
 - NFR-10: A correlation/request ID is generated at the API Gateway and propagated through all downstream service calls for a given request, to support tracing a request across services.
 
 ### 4.4 Scalability / Maintainability
-- NFR-11: System is decomposed into independently deployable microservices, each owning its own database, so that services can evolve and (in principle) scale independently.
+- NFR-11: The system is built as a modular monolith with clear bounded-context boundaries, organized so that if it makes sense for a module to be extracted into an independently deployable service with its own database in the future, it is easy to do so without any major problems. 
 
 ## 5. Technical Constraints / Decisions
 
-- Backend: Java, Spring Boot, one service per bounded context, fronted by an API Gateway.
+- Backend: Java, Spring Boot, modular monolith to start, fronted by an API Gateway.
 - Database: PostgreSQL, one database per service.
 - Frontend: Angular, single web app with role-based views/dashboards.
 - Containerization: Docker + Docker Compose for local/dev; deployment target is AWS.

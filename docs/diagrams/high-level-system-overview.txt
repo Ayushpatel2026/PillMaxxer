@@ -1,0 +1,48 @@
+@startuml high_level_system
+skinparam componentStyle rectangle
+ 
+actor "Patient / Provider / Caregiver" as User
+ 
+component "Frontend" as Frontend
+
+package "API Gateway" as GatewayPkg {
+  component "API Gateway" as Gateway
+}
+ 
+package "PillMaxxer Backend" as Backend {
+  component "API Gateway" as Gateway
+  component "Identity & Access" as Identity
+  component "Adherence" as Adherence
+  component "Reports" as Reports
+  component "Prescriptions" as Prescriptions
+  component "Connections" as Connections
+  component "Schedule" as Schedule
+  component "Notifications" as Notifications
+}
+ 
+package "External Services" as External {
+  component "SMTP Provider" as SMTP
+  component "OCR" as OCR
+  component "RxNav" as RxNav
+}
+ 
+database "DB\n(PostgreSQL)" as DB
+ 
+User --> Frontend
+Frontend --> Gateway : HTTPS with JWT auth token
+ 
+Gateway --> Reports
+Gateway --> Prescriptions
+Gateway --> Identity
+Gateway --> Adherence
+ 
+Gateway --> Connections
+Gateway --> Schedule
+ 
+Gateway --> Notifications
+
+Backend --> External
+ 
+Backend --> DB
+ 
+@enduml

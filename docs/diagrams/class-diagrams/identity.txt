@@ -1,0 +1,82 @@
+@startuml identity_access_module
+package "Identity & Access" {
+
+  enum Role {
+    PATIENT
+    PROVIDER
+    CAREGIVER
+    ADMIN
+  }
+
+  class User {
+    -id: UUID
+    -email: String
+    -passwordHash: String
+    -role: Role
+    -emailVerified: boolean
+    -createdAt: Instant
+  }
+
+  class RefreshToken {
+    -id: UUID
+    -userId: UUID
+    -tokenHash: String
+    -expiresAt: Instant
+    -revoked: boolean
+  }
+
+  interface IdentityService {
+    +registerUser(dto: RegistrationDTO): UserSummaryDTO
+    +authenticate(email, password): AuthResultDTO
+    +verifyEmail(token: String): void
+    +refreshTokens(refreshToken: String): AuthResultDTO
+    +logout(refreshToken: String): void
+    +getUserSummary(userId: UUID): UserSummaryDTO
+  }
+
+  class IdentityServiceImpl implements IdentityService
+
+  class IdentityController {
+    +register(dto): void
+    +login(dto): AuthResultDTO
+    +refresh(dto): AuthResultDTO
+    +logout(dto): void
+  }
+
+  interface TokenProvider {
+    +issueAccessToken(user: User): String
+    +issueRefreshToken(user: User): String
+    +verifyAccessToken(token: String): TokenClaims
+  }
+
+  class JwtTokenProvider implements TokenProvider
+
+  class UserRepository
+  class RefreshTokenRepository
+
+  class UserSummaryDTO {
+    +userId: UUID
+    +email: String
+    +role: Role
+  }
+  class AuthResultDTO {
+    +accessToken: String
+    +refreshToken: String
+  }
+
+  IdentityController --> IdentityService
+  IdentityServiceImpl --> UserRepository
+  IdentityServiceImpl --> RefreshTokenRepository
+  IdentityServiceImpl --> TokenProvider
+  IdentityServiceImpl ..> UserSummaryDTO
+  IdentityServiceImpl ..> AuthResultDTO
+  UserRepository --> User
+  RefreshTokenRepository --> RefreshToken
+  User --> Role
+}
+
+note bottom of IdentityService
+  Note: This diagram does not cover the RBAC design. 
+  That is part of a different diagram. 
+end note
+@enduml

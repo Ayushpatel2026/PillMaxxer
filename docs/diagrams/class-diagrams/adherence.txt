@@ -1,0 +1,45 @@
+@startuml adherence_module
+package "Adherence & Gamification" {
+
+  class PointsLedgerEntry {
+    -id: UUID
+    -patientId: UUID
+    -points: int
+    -reason: String
+    -timestamp: Instant
+  }
+
+  interface AdherenceService {
+    +getProgress(patientId, window): AdherenceStatsDTO
+    +recordDoseOutcome(patientId, doseInstanceId, onTime: boolean): void
+    +getLeaderboard(limit: int): List<LeaderboardEntryDTO>
+  }
+
+  class AdherenceServiceImpl implements AdherenceService
+  class AdherenceController {
+    +getProgress(patientId, window): AdherenceStatsDTO
+    +getLeaderboard(): List<LeaderboardEntryDTO>
+  }
+
+  class PointsLedgerRepository
+
+  class AdherenceStatsDTO {
+    +takenCount: int
+    +missedCount: int
+    +currentStreak: int
+    +totalPoints: int
+  }
+  class LeaderboardEntryDTO {
+    +patientDisplayName: String
+    +totalPoints: int
+  }
+
+  AdherenceController --> AdherenceService
+  AdherenceServiceImpl --> PointsLedgerRepository
+  AdherenceServiceImpl ..> AdherenceStatsDTO
+  AdherenceServiceImpl ..> LeaderboardEntryDTO
+  PointsLedgerRepository --> PointsLedgerEntry
+
+  AdherenceServiceImpl ..> "ScheduleService (Doses & Scheduling)" : getDoseHistory() to compute stats
+}
+@enduml

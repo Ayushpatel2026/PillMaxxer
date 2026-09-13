@@ -1,0 +1,48 @@
+@startuml jwt_auth
+participant "Client (Frontend)" as Client
+participant "API Gateway" as Gateway
+participant "Identity & Access" as Identity
+participant "Target Module\n(e.g. Prescriptions)" as Module
+ 
+== Login ==
+Client -> Gateway : POST /auth/login (email, password)
+Gateway -> Identity : authenticate(email, password)
+Identity -> Identity : fetch user, verify password hash
+Identity -> Identity : generate JWT access token\n(short-lived, signed)
+Identity -> Identity : generate refresh token\n(random, long-lived, stored hashed)
+Identity --> Gateway : access token + refresh token
+Gateway --> Client : access token + refresh token
+ 
+== Authenticated Request ==
+Client -> Gateway : GET /prescriptions\nAuthorization: Bearer <accessToken>
+Gateway -> Gateway : verify JWT signature + expiry\n(using Identity's public signing key,\nno call to Identity needed)
+alt token valid
+  Gateway -> Module : forward request with userId, role from claims
+  Module --> Gateway : response
+  Gateway --> Client : response
+else token invalid/expired
+  Gateway --> Client : 401 Unauthorized
+end
+ 
+== Token Refresh ==
+Client -> Gateway : POST /auth/refresh (refreshToken)
+Gateway -> Identity : refresh(refreshToken)
+Identity -> Identity : verify refresh token\n(hashed match, not revoked, not expired)
+alt valid
+  Identity -> Identity : issue new access token
+  Identity -> Identity : rotate refresh token\n(issue new, invalidate old)
+  Identity --> Gateway : new access + refresh token
+  Gateway --> Client : new tokens
+else invalid/expired/revoked
+  Identity --> Gateway : reject
+  Gateway --> Client : 401, force re-login
+end
+ 
+== Logout ==
+Client -> Gateway : POST /auth/logout (refreshToken)
+Gateway -> Identity : logout(refreshToken)
+Identity -> Identity : revoke refresh token record
+Identity --> Gateway : 204 No Content
+Gateway --> Client : logged out
+ 
+@enduml

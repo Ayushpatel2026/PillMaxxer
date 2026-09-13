@@ -1,0 +1,61 @@
+@startuml prescriptions_module
+package "Prescriptions" {
+
+  enum PrescriptionSource {
+    PROVIDER
+    SELF_REPORTED
+  }
+
+  class Prescription {
+    -id: UUID
+    -patientId: UUID
+    -providerId: UUID
+    -medicationName: String
+    -dosage: String
+    -frequency: String
+    -startDate: LocalDate
+    -endDate: LocalDate
+    -source: PrescriptionSource
+    -createdAt: Instant
+  }
+
+  interface PrescriptionService {
+    +createPrescription(dto): PrescriptionSummaryDTO
+    +getPrescriptionsForPatient(patientId): List<PrescriptionSummaryDTO>
+    +getPrescriptionDetail(prescriptionId, requesterId): PrescriptionDetailDTO
+  }
+
+  class PrescriptionServiceImpl implements PrescriptionService
+  class PrescriptionController {
+    +create(dto): PrescriptionSummaryDTO
+    +listForPatient(patientId): List<PrescriptionSummaryDTO>
+  }
+
+  class PrescriptionRepository
+
+  interface DrugInteractionClient {
+    +checkInteractions(activeMeds: List<String>, newMed: String): InteractionResultDTO
+  }
+  class RxNavInteractionClient implements DrugInteractionClient
+
+  class InteractionResultDTO {
+    +severity: String
+    +description: String
+  }
+  class PrescriptionSummaryDTO
+  class PrescriptionDetailDTO
+
+  PrescriptionController --> PrescriptionService
+  PrescriptionServiceImpl --> PrescriptionRepository
+  PrescriptionServiceImpl --> DrugInteractionClient
+  PrescriptionServiceImpl ..> InteractionResultDTO
+  PrescriptionRepository --> Prescription
+  Prescription --> PrescriptionSource
+
+  PrescriptionServiceImpl ..> PrescriptionDetailDTO
+  PrescriptionServiceImpl ..> PrescriptionSummaryDTO
+  PrescriptionServiceImpl ..> "ConnectionService (Connections)" : checkAccess before create/read
+  PrescriptionServiceImpl ..> "ScheduleService (Doses & Scheduling)" : generateSchedule()
+  PrescriptionServiceImpl ..> "NotificationService (Notifications)" : critical interaction alert
+}
+@enduml

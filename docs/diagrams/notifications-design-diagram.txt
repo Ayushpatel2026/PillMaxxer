@@ -1,0 +1,37 @@
+@startuml notifications_push
+package "PillMaxxer Monolith" {
+  component "Prescriptions" as Prescriptions
+  component "Doses & Scheduling" as Schedule
+  component "Connections" as Connections
+  component "Notifications" as Notifications
+}
+ 
+queue "Event Bus / Message Broker\n(RabbitMQ or Kafka, post-MVP)" as Broker
+component "WebSocket Connection Manager" as WSManager
+database "Notification Log (DB)" as DB
+component "SMTP Provider" as SMTP
+actor "Connected Client\n(Patient / Provider / Caregiver browser)" as Client
+ 
+Prescriptions --> Broker : publish event\n(e.g. critical interaction)
+Schedule --> Broker : publish event\n(e.g. dose due, dose missed)
+Connections --> Broker : publish event\n(e.g. access granted/revoked)
+ 
+Broker --> Notifications : consume event
+ 
+Notifications --> DB : persist notification record
+Notifications --> SMTP : send email\n(always, as a durable record)
+Notifications --> WSManager : if recipient has an active session,\ndeliver in real time
+ 
+WSManager <--> Client : persistent WebSocket connection\n(authenticated via JWT on connect)
+WSManager --> Client : push notification payload
+ 
+Client --> Notifications : GET /notifications (REST)\nfetch missed/past notifications on load
+
+note right of WSManager
+  If the client has no active WebSocket
+  session, the notification is still
+  persisted and emailed, and shows up via
+  the REST fetch next time the app opens.
+end note
+ 
+@enduml
